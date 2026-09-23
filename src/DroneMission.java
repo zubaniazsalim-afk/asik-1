@@ -86,16 +86,46 @@ public final class DroneMission {
         }
 
         public DroneMission build() {
+            validateRequiredFields();
+            validateRanges();
+            validateDependencies();
+            return new DroneMission(this);
+        }
+
+        private void validateRequiredFields() {
             if (name == null || name.isBlank()) {
                 throw new IllegalArgumentException("Mission name must not be blank");
             }
             if (type == null) {
                 throw new IllegalArgumentException("Mission type is required");
             }
+            if (launchSite == null) {
+                throw new IllegalArgumentException("Launch site is required");
+            }
+        }
+
+        private void validateRanges() {
             if (!Double.isFinite(distanceKm) || distanceKm <= 0 || distanceKm > 50) {
                 throw new IllegalArgumentException("Distance must be greater than 0 and at most 50 km");
             }
-            return new DroneMission(this);
+            if (batteryMah < 1000 || batteryMah > 20000) {
+                throw new IllegalArgumentException("Battery must be between 1000 and 20000 mAh");
+            }
+            if (altitudeMeters < 1 || altitudeMeters > 120) {
+                throw new IllegalArgumentException("Altitude must be between 1 and 120 meters");
+            }
+            if (speedKmh < 1 || speedKmh > 60) {
+                throw new IllegalArgumentException("Speed must be between 1 and 60 km/h");
+            }
+        }
+
+        private void validateDependencies() {
+            if (type == MissionType.LONG_RANGE && (!gpsEnabled || batteryMah < 5000)) {
+                throw new IllegalArgumentException("LONG_RANGE requires GPS and battery of at least 5000 mAh");
+            }
+            if (returnHomeEnabled && !gpsEnabled) {
+                throw new IllegalArgumentException("Return home requires GPS");
+            }
         }
     }
 
