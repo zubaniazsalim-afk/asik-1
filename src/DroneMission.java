@@ -10,29 +10,93 @@ public final class DroneMission {
     private final boolean returnHomeEnabled;
     private final boolean cameraEnabled;
 
-    public DroneMission(String name, MissionType type, double distanceKm,
-                        LaunchSite launchSite, int batteryMah, int altitudeMeters,
-                        int speedKmh, boolean gpsEnabled, boolean returnHomeEnabled,
-                        boolean cameraEnabled) {
-        if (name == null || name.isBlank()) {
-            throw new IllegalArgumentException("Mission name must not be blank");
+    // Только Builder может создать готовую миссию.
+    private DroneMission(Builder builder) {
+        this.name = builder.name;
+        this.type = builder.type;
+        this.distanceKm = builder.distanceKm;
+        this.launchSite = builder.launchSite;
+        this.batteryMah = builder.batteryMah;
+        this.altitudeMeters = builder.altitudeMeters;
+        this.speedKmh = builder.speedKmh;
+        this.gpsEnabled = builder.gpsEnabled;
+        this.returnHomeEnabled = builder.returnHomeEnabled;
+        this.cameraEnabled = builder.cameraEnabled;
+    }
+
+    public String getName() { return name; }
+    public MissionType getType() { return type; }
+    public double getDistanceKm() { return distanceKm; }
+    public LaunchSite getLaunchSite() { return launchSite; }
+    public int getBatteryMah() { return batteryMah; }
+    public int getAltitudeMeters() { return altitudeMeters; }
+    public int getSpeedKmh() { return speedKmh; }
+    public boolean isGpsEnabled() { return gpsEnabled; }
+    public boolean isReturnHomeEnabled() { return returnHomeEnabled; }
+    public boolean isCameraEnabled() { return cameraEnabled; }
+
+    public static class Builder {
+        private final String name;
+        private final MissionType type;
+        private final double distanceKm;
+        private final LaunchSite launchSite;
+        private int batteryMah = 3000;
+        private int altitudeMeters = 50;
+        private int speedKmh = 25;
+        private boolean gpsEnabled = false;
+        private boolean returnHomeEnabled = false;
+        private boolean cameraEnabled = false;
+
+        // Четыре обязательных параметра передаются сразу.
+        public Builder(String name, MissionType type, double distanceKm, LaunchSite launchSite) {
+            this.name = name;
+            this.type = type;
+            this.distanceKm = distanceKm;
+            this.launchSite = launchSite;
         }
-        if (type == null) {
-            throw new IllegalArgumentException("Mission type is required");
+
+        public Builder withBattery(int batteryMah) {
+            this.batteryMah = batteryMah;
+            return this;
         }
-        if (!Double.isFinite(distanceKm) || distanceKm <= 0 || distanceKm > 50) {
-            throw new IllegalArgumentException("Distance must be greater than 0 and at most 50 km");
+
+        public Builder flyAtAltitude(int altitudeMeters) {
+            this.altitudeMeters = altitudeMeters;
+            return this;
         }
-        this.name = name;
-        this.type = type;
-        this.distanceKm = distanceKm;
-        this.launchSite = launchSite;
-        this.batteryMah = batteryMah;
-        this.altitudeMeters = altitudeMeters;
-        this.speedKmh = speedKmh;
-        this.gpsEnabled = gpsEnabled;
-        this.returnHomeEnabled = returnHomeEnabled;
-        this.cameraEnabled = cameraEnabled;
+
+        public Builder cruiseAtSpeed(int speedKmh) {
+            this.speedKmh = speedKmh;
+            return this;
+        }
+
+        public Builder enableGps() {
+            this.gpsEnabled = true;
+            return this;
+        }
+
+        public Builder enableReturnHome() {
+            this.returnHomeEnabled = true;
+            return this;
+        }
+
+        public Builder enableCamera() {
+            this.cameraEnabled = true;
+            return this;
+        }
+
+        public DroneMission build() {
+            if (name == null || name.isBlank()) {
+                throw new IllegalArgumentException("Mission name must not be blank");
+            }
+            if (type == null) {
+                throw new IllegalArgumentException("Mission type is required");
+            }
+            if (!Double.isFinite(distanceKm) || distanceKm <= 0 || distanceKm > 50) {
+                throw new IllegalArgumentException("Distance must be greater than 0 and at most 50 km");
+            }
+            return new DroneMission(this);
+        }
     }
 
     @Override
