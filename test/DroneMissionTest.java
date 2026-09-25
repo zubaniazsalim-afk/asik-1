@@ -1,4 +1,4 @@
-// Тесты без библиотек. Если условие неверно, программа завершится с ошибкой.
+// Tests without libraries. A failed condition makes the program exit with an error.
 public class DroneMissionTest {
     private static int passed = 0;
     private static final LaunchSite SITE = new LaunchSite("Test field", "Kazakhstan");

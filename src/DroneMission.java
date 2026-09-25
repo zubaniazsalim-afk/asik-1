@@ -10,7 +10,7 @@ public final class DroneMission {
     private final boolean returnHomeEnabled;
     private final boolean cameraEnabled;
 
-    // Только Builder может создать готовую миссию.
+    // Only Builder can create a completed mission.
     private DroneMission(Builder builder) {
         this.name = builder.name;
         this.type = builder.type;
@@ -47,7 +47,7 @@ public final class DroneMission {
         private boolean returnHomeEnabled = false;
         private boolean cameraEnabled = false;
 
-        // Четыре обязательных параметра передаются сразу.
+        // The four required parameters are supplied together.
         public Builder(String name, MissionType type, double distanceKm, LaunchSite launchSite) {
             this.name = name;
             this.type = type;

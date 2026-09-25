@@ -1,4 +1,4 @@
-// Неизменяемый объект места старта: название и страна.
+// Immutable launch location: name and country.
 public final class LaunchSite {
     private final String name;
     private final String country;

@@ -1,39 +1,39 @@
-# Assignment 1 — Builder Pattern для миссии дрона
+# Assignment 1 — Builder Pattern for a Drone Mission
 
-Репозиторий: https://github.com/zubaniazsalim-afk/asik-1
+Repository: https://github.com/zubaniazsalim-afk/asik-1
 
-Проект показывает переход от конструктора с десятью аргументами к пошаговому созданию объекта через Builder. Готовая миссия неизменяема, а неверные сочетания параметров отклоняются до её создания. Реализация использует только стандартные средства Java 17.
+This project demonstrates the transition from a constructor with ten arguments to step-by-step object creation using Builder. A completed mission is immutable, and invalid parameter combinations are rejected before it is created. The implementation uses only standard Java 17 features.
 
-## 1. Индивидуальный вариант и задача
+## 1. Individual variant and problem
 
-**Domain:** Drone Mission. **Constraint:** миссия типа `LONG_RANGE` требует включённого GPS и батареи не меньше 5000 mAh. **Required preset:** SAFE.
+**Domain:** Drone Mission. **Constraint:** a `LONG_RANGE` mission requires GPS to be enabled and a battery capacity of at least 5000 mAh. **Required preset:** SAFE.
 
-Этот вариант взят из примера в задании как рабочий вариант; назначение или согласование преподавателем пока не подтверждено. Полная комбинация должна быть согласована и соответствовать индивидуальному варианту студента.
+This working variant was taken from the example in the assignment; assignment or approval by the instructor has not yet been confirmed. The complete combination must be approved and match the student's individual variant.
 
-Дополнительное ограничение: автоматическое возвращение требует GPS. Здесь дальний полёт определяется значением `MissionType.LONG_RANGE`, а не автоматически по расстоянию. Числовые пределы — условия учебной модели, а не расчёт физической дальности и не правила эксплуатации реального дрона.
+An additional constraint requires GPS for automatic return home. In this model, a long-range flight is identified by `MissionType.LONG_RANGE`, rather than inferred automatically from distance. The numerical limits are conditions of the educational model, not physical flight-range calculations or operating rules for a real drone.
 
-Задача программы — создавать конфигурации для учебного полёта, безопасного режима и дальнего полёта с камерой. У конфигураций разные параметры, но общие правила корректности.
+The application creates configurations for a training flight, a safe mode, and a long-range flight with a camera. These configurations have different settings but share the same consistency rules.
 
-## 2. Свойства Product
+## 2. Product properties
 
-| Свойство | Тип | Обязательное | Значение по умолчанию и смысл |
+| Property | Type | Required | Default value and meaning |
 |---|---|---|---|
-| name | String | Да | Название миссии |
-| type | MissionType | Да | LOCAL или LONG_RANGE |
-| distanceKm | double | Да | Расстояние в километрах |
-| launchSite | LaunchSite | Да | Вложенный объект места старта |
-| batteryMah | int | Нет | 3000 mAh, базовая батарея |
-| altitudeMeters | int | Нет | 50 метров, базовая высота |
-| speedKmh | int | Нет | 25 км/ч, базовая скорость |
-| gpsEnabled | boolean | Нет | false, навигация включается явно |
-| returnHomeEnabled | boolean | Нет | false, возвращение включается явно |
-| cameraEnabled | boolean | Нет | false, камера включается по необходимости |
+| name | String | Yes | Mission name |
+| type | MissionType | Yes | LOCAL or LONG_RANGE |
+| distanceKm | double | Yes | Distance in kilometers |
+| launchSite | LaunchSite | Yes | Nested launch location object |
+| batteryMah | int | No | 3000 mAh, basic battery |
+| altitudeMeters | int | No | 50 meters, basic altitude |
+| speedKmh | int | No | 25 km/h, basic speed |
+| gpsEnabled | boolean | No | false, navigation is enabled explicitly |
+| returnHomeEnabled | boolean | No | false, return home is enabled explicitly |
+| cameraEnabled | boolean | No | false, the camera is enabled when needed |
 
-Всего 10 осмысленных свойств: 4 обязательных и 6 необязательных. Используются String, enum, double, int, boolean и объект LaunchSite. Значения по умолчанию подходят для BASIC. Для LONG_RANGE настройки GPS и батареи необходимо изменить явно.
+There are 10 meaningful properties: 4 required and 6 optional. The types include String, enum, double, int, boolean, and the LaunchSite object. The defaults are suitable for BASIC. LONG_RANGE requires explicit changes to the GPS and battery settings.
 
-## 3. Первоначальное решение с конструктором
+## 3. Initial constructor-based solution
 
-Полная исходная реализация находится в коммите `40059d3`; её можно просмотреть командами из README. Реальный клиентский код этого этапа:
+The complete initial implementation is preserved in commit `40059d3` and can be viewed using the commands in the README. The actual client code at that stage was:
 
 ```java
 LaunchSite site = new LaunchSite("Training field", "Kazakhstan");
@@ -42,19 +42,19 @@ DroneMission mission = new DroneMission("Safe flight", MissionType.LOCAL,
 System.out.println(mission);
 ```
 
-Конструктор принимал все десять свойств и записывал их в поля. Он уже проверял название, тип и расстояние, но полной проверки зависимостей ещё не было.
+The constructor accepted all ten properties and assigned them to fields. It already checked the name, type, and distance, but full dependency validation had not yet been implemented.
 
-Конкретные проблемы:
+Specific design problems:
 
-1. `5000`, `40` и `20` имеют тип `int`. Если поменять высоту и скорость местами, программа скомпилируется и может получить допустимые, но неверные по смыслу значения. Имена методов Builder раскрывают назначение чисел.
-2. По `true, true, false` нельзя понять, что включено. Чтобы проверить вызов, нужно открывать объявление конструктора и считать позиции аргументов.
-3. Даже для BASIC нужно передать все настройки. Значения по умолчанию пришлось бы повторять во всех вызовах или создавать дополнительные перегрузки конструктора.
-4. Новое необязательное свойство требует изменения длинной сигнатуры и вызовов либо добавления ещё одной перегрузки. В Builder можно добавить отдельный метод с дефолтом, сохранив клиентский код.
-5. В первоначальной реализации можно было создать LONG_RANGE без GPS. Builder сам по себе не исправляет эту ошибку: её исправляет явно добавленная проверка перед созданием Product. Такие проверки можно было добавить и в обычный конструктор, но это не решило бы проблемы читаемости вызовов.
+1. `5000`, `40`, and `20` all have type `int`. Swapping altitude and speed would still compile and could produce valid numbers with the wrong meaning. Builder method names explain what each number represents.
+2. `true, true, false` does not reveal which features are enabled. Understanding the call requires opening the constructor declaration and counting argument positions.
+3. Even BASIC requires every setting to be supplied. Defaults would need to be repeated in every call or supported through additional constructor overloads.
+4. A new optional property requires changing the long signature and its callers, or adding another overload. Builder can introduce a separate method and a default without changing existing client code.
+5. The initial implementation allowed LONG_RANGE without GPS. Builder alone does not fix this: an explicit check before Product creation does. Such validation could also be added to a conventional constructor, but that would not solve the readability problems of its calls.
 
-## 4. Решение через Builder и объяснение кода
+## 4. Builder solution and code explanation
 
-Эквивалентная безопасная конфигурация записывается так:
+The equivalent safe configuration can be written as follows:
 
 ```java
 DroneMission mission = new DroneMission.Builder("Safe flight", MissionType.LOCAL, 3, site)
@@ -66,7 +66,7 @@ DroneMission mission = new DroneMission.Builder("Safe flight", MissionType.LOCAL
         .build();
 ```
 
-`new DroneMission.Builder(...)` создаёт временный объект настроек и принимает четыре обязательных значения. Необязательные поля уже имеют значения по умолчанию. Например, `withBattery(5000)` меняет батарею в Builder и возвращает тот же Builder.
+`new DroneMission.Builder(...)` creates a temporary configuration object and accepts four required values. Optional fields already have defaults. For example, `withBattery(5000)` changes the battery setting in the Builder and returns that same Builder.
 
 ```java
 public Builder withBattery(int batteryMah) {
@@ -75,7 +75,7 @@ public Builder withBattery(int batteryMah) {
 }
 ```
 
-В этой строке `this.batteryMah` — поле объекта, а `batteryMah` справа — аргумент метода. `return this` позволяет сразу вызвать следующий метод после точки. Цепочка методов называется fluent API или method chaining. Она не создаёт отдельную миссию на каждом шаге.
+Here, `this.batteryMah` is the object's field, while `batteryMah` on the right is the method argument. `return this` allows the next method to be called immediately after a dot. This is called a fluent API or method chaining. It does not create a separate mission at each step.
 
 ```java
 public DroneMission build() {
@@ -86,77 +86,77 @@ public DroneMission build() {
 }
 ```
 
-`build()` сначала проверяет все настройки, а затем передаёт Builder закрытому конструктору Product. Конструктор копирует значения в поля готовой миссии, например `this.batteryMah = builder.batteryMah`. Если проверка выбросила исключение, строка создания Product не выполняется.
+`build()` first validates all settings, then passes the Builder to the private Product constructor. The constructor copies values into the completed mission's fields, for example `this.batteryMah = builder.batteryMah`. If validation throws an exception, the Product creation statement is never executed.
 
-`private` запрещает внешнему коду напрямую обращаться к полю или конструктору. `final` у поля запрещает повторно присвоить ему значение. У Product нет методов изменения полей. Класс также объявлен `final`, поэтому его нельзя расширить подклассом, меняющим договорённости модели.
+`private` prevents outside code from accessing a field or constructor directly. A `final` field cannot be reassigned. Product has no methods that modify its fields. The class is also declared `final`, so it cannot be extended by a subclass that changes the model's guarantees.
 
-`public static class Builder` — вложенный класс. `static` означает, что для создания Builder не нужна уже существующая миссия. `MissionType` — enum с двумя допустимыми именованными значениями вместо произвольных строк. `LaunchSite` хранит название места и страну, проверяет их в своём конструкторе и тоже не позволяет изменять поля.
+`public static class Builder` is a nested class. `static` means that creating a Builder does not require an existing mission. `MissionType` is an enum with two named values instead of arbitrary strings. `LaunchSite` stores a location name and country, validates them in its constructor, and also prevents field changes.
 
-Методы `getBatteryMah()`, `isGpsEnabled()` и остальные getters только читают значения. `toString()` формирует текст миссии. Вывод в консоль находится в `Main`, а не в Product или Builder.
+`getBatteryMah()`, `isGpsEnabled()`, and the other getters only read values. `toString()` creates a text representation of a mission. Console output belongs to `Main`, rather than Product or Builder.
 
-## 5. Участники и UML
+## 5. Participants and UML
 
-![UML классов Builder](docs/builder-uml.png)
+![Builder UML class diagram](docs/builder-uml.png)
 
-| Роль | Класс | Ответственность |
+| Role | Class | Responsibility |
 |---|---|---|
-| Product | DroneMission | Хранит готовую неизменяемую миссию |
-| Builder | DroneMission.Builder | Собирает параметры, проверяет их и создаёт Product |
-| Client | Main | Создаёт место старта, вызывает пресеты, выводит результат |
-| Director | MissionPresets | Хранит повторно используемые рецепты BASIC, SAFE, PERFORMANCE |
-| Value object | LaunchSite | Хранит и проверяет название места старта и страну |
-| Supporting enum | MissionType | Ограничивает выбор типа миссии |
+| Product | DroneMission | Stores a completed immutable mission |
+| Builder | DroneMission.Builder | Collects settings, validates them, and creates Product |
+| Client | Main | Creates a launch site, calls presets, and prints results |
+| Director | MissionPresets | Stores reusable BASIC, SAFE, and PERFORMANCE recipes |
+| Value object | LaunchSite | Stores and validates the launch location name and country |
+| Supporting enum | MissionType | Restricts the available mission types |
 
-На UML показаны поля, операции, вложенный Builder и зависимости фактического кода. Сплошная стрелка обозначает связь с типом или местом старта, пунктирная — использование класса. LaunchSite может разделяться несколькими миссиями, поэтому он показан обычной связью, а не эксклюзивной композицией. Тестовый класс не является участником паттерна.
+The UML shows the fields, operations, nested Builder, and dependencies of the actual code. A solid arrow represents an association with the mission type or launch site; a dashed arrow represents a dependency. Multiple missions may share a LaunchSite, so it is shown as an ordinary association rather than exclusive composition. The test class is not a participant in the pattern.
 
-## 6. Валидация
+## 6. Validation
 
-| Проверка | Правило | Место |
+| Check | Rule | Location |
 |---|---|---|
-| Название | Не null и не пустое после учёта пробелов | validateRequiredFields |
-| Тип | Не null | validateRequiredFields |
-| Место старта | Не null | validateRequiredFields |
-| Расстояние | Конечное число, 0 < distanceKm <= 50 | validateRanges |
-| Батарея | 1000–20000 включительно | validateRanges |
-| Высота | 1–120 включительно | validateRanges |
-| Скорость | 1–60 включительно | validateRanges |
-| Межполевая проверка 1 | LONG_RANGE требует GPS и batteryMah >= 5000 | validateDependencies |
-| Межполевая проверка 2 | returnHomeEnabled требует gpsEnabled | validateDependencies |
-| Поля LaunchSite | Название и страна не null и не пустые | Конструктор LaunchSite |
+| Name | Not null and not blank | validateRequiredFields |
+| Type | Not null | validateRequiredFields |
+| Launch site | Not null | validateRequiredFields |
+| Distance | Finite number, 0 < distanceKm <= 50 | validateRanges |
+| Battery | 1000–20000 inclusive | validateRanges |
+| Altitude | 1–120 inclusive | validateRanges |
+| Speed | 1–60 inclusive | validateRanges |
+| Cross-field rule 1 | LONG_RANGE requires GPS and batteryMah >= 5000 | validateDependencies |
+| Cross-field rule 2 | returnHomeEnabled requires gpsEnabled | validateDependencies |
+| LaunchSite fields | Name and country must not be null or blank | LaunchSite constructor |
 
-`Double.isFinite` отклоняет NaN и бесконечность: обычного сравнения с границами недостаточно для NaN. Ошибки представлены `IllegalArgumentException` с конкретным сообщением. Например, дальний полёт с GPS и батареей 4999 вызывает `LONG_RANGE requires GPS and battery of at least 5000 mAh`.
+`Double.isFinite` rejects NaN and infinity: ordinary boundary comparisons are insufficient for NaN. Invalid settings produce an `IllegalArgumentException` with a specific message. For example, a long-range flight with GPS and a 4999 mAh battery produces `LONG_RANGE requires GPS and battery of at least 5000 mAh`.
 
-Проверки выполняются в `build()`, потому что отдельные шаги Builder могут временно образовывать незавершённую комбинацию. Разрешено сначала вызвать `enableReturnHome()`, затем `enableGps()`. Важна корректность готового результата, а не порядок независимых настроек. LaunchSite проверяется отдельно при создании, так как это самостоятельный объект с собственными простыми правилами.
+Validation occurs in `build()` because individual Builder steps may temporarily form an incomplete combination. Calling `enableReturnHome()` before `enableGps()` is allowed. What matters is the consistency of the finished result, rather than the order of independent settings. LaunchSite is validated separately when it is created because it is a standalone object with its own simple rules.
 
-## 7. Три пресета
+## 7. Three presets
 
-| Параметр | BASIC | SAFE | PERFORMANCE |
+| Parameter | BASIC | SAFE | PERFORMANCE |
 |---|---|---|---|
-| Тип | LOCAL | LOCAL | LONG_RANGE |
-| Расстояние | 1 км | 3 км | 20 км |
-| Батарея | 3000 | 5000 | 8000 |
-| Высота | 50 | 40 | 100 |
-| Скорость | 25 | 20 | 60 |
-| GPS | Выключен | Включён | Включён |
-| Возвращение | Выключено | Включено | Включено |
-| Камера | Выключена | Выключена | Включена |
+| Type | LOCAL | LOCAL | LONG_RANGE |
+| Distance | 1 km | 3 km | 20 km |
+| Battery | 3000 | 5000 | 8000 |
+| Altitude | 50 | 40 | 100 |
+| Speed | 25 | 20 | 60 |
+| GPS | Disabled | Enabled | Enabled |
+| Return home | Disabled | Enabled | Enabled |
+| Camera | Disabled | Disabled | Enabled |
 
-BASIC демонстрирует дефолты. SAFE уменьшает скорость и высоту, добавляет навигацию и большую батарею. PERFORMANCE использует дальний полёт, камеру и повышенные параметры. Название SAFE обозначает учебный рецепт, а не гарантию безопасности реального полёта.
+BASIC demonstrates the defaults. SAFE reduces speed and altitude while adding navigation and a larger battery. PERFORMANCE uses a long-range flight, a camera, and higher settings. SAFE is the name of an educational recipe, not a guarantee of real-world flight safety.
 
-Director реализован простым классом со статическими методами, без дополнительного интерфейса. Метод `withNavigation` объединяет общие шаги GPS и возвращения для SAFE и PERFORMANCE. Полная последовательность Builder не копируется трижды. BASIC использует дефолты, а остальные рецепты добавляют свои отличия. Каждый вызов пресета создаёт новый Builder.
+The Director is a simple class with static methods, without an additional interface. The `withNavigation` method combines the shared GPS and return-home steps for SAFE and PERFORMANCE. The entire Builder sequence is not copied three times. BASIC uses defaults, while the other recipes add their specific settings. Every preset call creates a new Builder.
 
-## 8. Clean Code Chapter 3 — три реальных примера до и после
+## 8. Clean Code Chapter 3 — three actual before-and-after examples
 
-### Пример 1 — количество аргументов и понятные имена
+### Example 1 — fewer arguments and descriptive names
 
-До, `Main.java` в коммите `40059d3`:
+Before, `Main.java` in commit `40059d3`:
 
 ```java
 DroneMission mission = new DroneMission("Safe flight", MissionType.LOCAL,
         3, site, 5000, 40, 20, true, true, false);
 ```
 
-После, `Main.java` в коммите `bb11d45`:
+After, `Main.java` in commit `bb11d45`:
 
 ```java
 DroneMission mission = new DroneMission.Builder("Safe flight", MissionType.LOCAL, 3, site)
@@ -168,11 +168,11 @@ DroneMission mission = new DroneMission.Builder("Safe flight", MissionType.LOCAL
         .build();
 ```
 
-Проблема: десять позиционных аргументов и неясные булевы флаги. Принципы: уменьшение числа аргументов, описательные имена и отказ от flag arguments в клиентском API. После изменения назначение каждого числа видно по имени метода; включение GPS выражено действием. Четыре обязательных аргумента оставлены вместе как минимальная основа миссии. В окончательном коде этот рецепт перенесён в Director.
+Problem: ten positional arguments and unclear boolean flags. Principles: minimizing function arguments, descriptive names, and avoiding flag arguments in the client API. After the change, method names explain each number, and enabling GPS is expressed as an action. The four required arguments remain together as the minimum basis for a mission. In the final code, this recipe is moved into the Director.
 
-### Пример 2 — маленькие функции и один уровень абстракции
+### Example 2 — small functions and one level of abstraction
 
-До, весь `build()` в коммите `bb11d45`:
+Before, the entire `build()` method in commit `bb11d45`:
 
 ```java
 public DroneMission build() {
@@ -189,7 +189,7 @@ public DroneMission build() {
 }
 ```
 
-После, текущий `build()`:
+After, the current `build()` method:
 
 ```java
 public DroneMission build() {
@@ -200,19 +200,19 @@ public DroneMission build() {
 }
 ```
 
-Проблема: верхнеуровневая операция создания смешивалась с деталями условий. При добавлении проверок метод рос бы. Принципы: маленькие функции, одна ответственность и один уровень абстракции. Теперь `build()` описывает этапы создания, а три вспомогательных метода проверяют отдельные группы правил. Добавление правила зависимости не загромождает основной сценарий.
+Problem: the high-level creation operation was mixed with detailed conditions. Adding more checks would make the method longer. Principles: small functions, one responsibility per function, and one level of abstraction. Now `build()` describes the creation stages, while three helper methods validate separate groups of rules. Adding a dependency rule does not clutter the main workflow.
 
-### Пример 3 — отделение рецептов от Client и DRY
+### Example 3 — separating recipes from Client and applying DRY
 
-До, реальная последовательность из `Main.java` коммита `bb11d45` приведена в примере 1. Клиент сам задавал все параметры SAFE. Если этот рецепт понадобился бы в другом месте, возник бы риск копирования и расхождения значений.
+Before, the actual sequence from `Main.java` in commit `bb11d45` is shown in Example 1. The client specified all SAFE settings itself. Reusing the recipe elsewhere would introduce a risk of copying it and ending up with inconsistent values.
 
-После, текущий Client вызывает рецепт:
+After, the current Client calls the recipe:
 
 ```java
 System.out.println(MissionPresets.safe(site) + " \uD83C\uDF4C");
 ```
 
-Общая часть двух рецептов в текущем `MissionPresets.java`:
+The shared part of two recipes in the current `MissionPresets.java`:
 
 ```java
 private static DroneMission.Builder withNavigation(String name, MissionType type,
@@ -223,36 +223,36 @@ private static DroneMission.Builder withNavigation(String name, MissionType type
 }
 ```
 
-Принципы: одна ответственность, DRY и описательные имена. Main отвечает за демонстрацию, Director — за рецепты. Изменение общих шагов навигации выполняется в одном методе. Здесь не утверждается, что исходный код уже содержал три копии: первоначально существовал один рецепт, который был вынесен перед добавлением остальных.
+Principles: one responsibility, DRY, and descriptive names. Main handles the demonstration; the Director handles recipes. Shared navigation steps can be changed in one method. This does not claim that the original code already contained three copies: initially, there was one recipe, which was extracted before the others were added.
 
-Всего показаны как минимум шесть принципов Chapter 3: малые функции, одна ответственность, описательные имена, один уровень абстракции, уменьшение числа аргументов, отказ от флаговых аргументов и DRY. Дополнительно ошибки не скрываются, а сообщаются исключением. Builder намеренно изменяет своё состояние; полное Command–Query Separation для fluent-методов не заявляется, поскольку они изменяют объект и возвращают его для цепочки.
+These examples demonstrate at least six Chapter 3 principles: small functions, one responsibility, descriptive names, one level of abstraction, minimizing arguments, avoiding flag arguments, and DRY. Errors are also reported through exceptions rather than hidden. Builder intentionally changes its own state; full Command–Query Separation is not claimed for fluent methods because they modify the object and return it for chaining.
 
-## 9. Решения и альтернативы
+## 9. Design decisions and alternatives
 
-**Решение 1: проверять настройки в Builder перед созданием Product.** Альтернатива — выполнять все проверки в конструкторе Product. Проверки в конструкторе особенно полезны, если есть несколько путей создания. Здесь конструктор закрыт и вызывается только из `build()`, поэтому проверка сосредоточена в одной точке и не повторяется. Если появится другой путь создания миссии, архитектуру проверок необходимо пересмотреть.
+**Decision 1: validate settings in Builder before creating Product.** An alternative is to perform all validation in the Product constructor. Constructor validation is especially useful when there are several creation paths. Here, the constructor is private and called only from `build()`, so validation remains in one place without duplication. If another mission creation path is introduced, the validation design must be reconsidered.
 
-**Решение 2: неизменяемый Product и повторно используемый Builder.** Альтернатива — изменяемая миссия с setters или одноразовый Builder. Неизменяемая миссия сохраняет уже проверенные параметры. Каждый `build()` создаёт новый объект, а поля копируются по значениям. LaunchSite разделяется по ссылке, но это безопасно, поскольку он тоже неизменяем. При появлении изменяемого списка потребуется защитное копирование. Повторное использование удобно для похожих миссий; прежние необязательные настройки сохраняются до их явного изменения. Обязательные поля Builder заданы навсегда. Builder не предназначен для совместного использования несколькими потоками.
+**Decision 2: an immutable Product and a reusable Builder.** Alternatives include a mutable mission with setters or a single-use Builder. An immutable mission preserves its validated settings. Each `build()` creates a new object and copies field values. LaunchSite is shared by reference, which is safe because it is also immutable. A mutable list would require defensive copying. Reuse is convenient for similar missions; previous optional settings remain until explicitly changed. Required Builder fields cannot be reassigned. Builder is not intended to be shared between multiple threads.
 
-**Решение 3: небольшой Director.** Альтернатива — писать три рецепта прямо в Main. Director полезен именно потому, что готовые конфигурации используются и клиентом, и тестами, а у двух из них есть общие шаги. Дополнительная иерархия Builder-интерфейсов здесь не нужна: Product только один, поэтому она усложнила бы учебный пример.
+**Decision 3: a small Director.** An alternative is to write all three recipes directly in Main. The Director is useful here because both the client and tests use the presets, and two presets share construction steps. An additional hierarchy of Builder interfaces is unnecessary: there is only one Product, so it would complicate this educational example.
 
-## 10. Автоматические тесты
+## 10. Automated testing
 
-Тесты находятся в `test/DroneMissionTest.java`. Это исполняемый тестовый класс без сторонних библиотек. `check` проверяет условие, а при ошибке выбрасывает `AssertionError`, поэтому процесс завершается с ненулевым кодом. Флаг `-ea` не нужен. `expectInvalid` проверяет и факт исключения `IllegalArgumentException`, и его точное сообщение; если неверный объект создался, тест падает.
+Tests are in `test/DroneMissionTest.java`. This is an executable test class without third-party libraries. `check` verifies a condition and throws `AssertionError` on failure, causing the process to exit with a nonzero status. The `-ea` flag is not required. `expectInvalid` checks both the `IllegalArgumentException` and its exact message; if an invalid object is created, the test fails.
 
-| Требование | Реальные проверки |
+| Requirement | Actual checks |
 |---|---|
-| 3 корректных сценария | BASIC, SAFE, PERFORMANCE с проверкой свойств |
-| 3 некорректных сценария | Пустое название, отсутствующий тип, отсутствующее место; дополнительно другие ошибки |
-| 2 граничных сценария | Минимальные допустимые целые параметры и положительное расстояние; максимальные допустимые значения |
-| Индивидуальное ограничение | LONG_RANGE без GPS; 4999 mAh с GPS; успешные 5000 mAh с GPS |
-| Независимость Product | После изменения и повторного использования Builder первая миссия сохраняет прежнюю батарею и камеру |
-| Дополнительные проверки | NaN, бесконечность, выходы за диапазоны, зависимость возвращения, некорректный LaunchSite, неудачный повторный build |
+| 3 valid scenarios | BASIC, SAFE, and PERFORMANCE with property checks |
+| 3 invalid scenarios | Blank name, missing type, and missing launch site, plus other errors |
+| 2 boundary scenarios | Minimum valid integer settings and a positive distance; maximum valid values |
+| Individual constraint | LONG_RANGE without GPS; 4999 mAh with GPS; successful construction at 5000 mAh with GPS |
+| Product independence | After modifying and reusing Builder, the first mission retains its original battery and camera settings |
+| Additional checks | NaN, infinity, out-of-range values, return-home dependency, invalid LaunchSite, and failed Builder reuse |
 
-0.01 км в тесте нижних границ — пример допустимого положительного расстояния, а не минимальное положительное значение типа double. Строгая нижняя граница расстояния 0 проверяется отдельным неуспешным сценарием.
+The 0.01 km distance in the lower-boundary test is an example of a valid positive distance, not the smallest positive double value. The strict lower distance boundary of 0 is covered by a separate failing scenario.
 
-Результат проверки на JDK 17.0.12: компиляция `javac -encoding UTF-8 -Xlint:all` без предупреждений, все 31 тестовый случай прошли. Это 31 проверка поведения, объединённая в тематические методы, а не просто 31 вызов методов Product.
+Verification on JDK 17.0.12: `javac -encoding UTF-8 -Xlint:all` compiled without warnings, and all 31 test cases passed. These are 31 behavior checks grouped into related methods, rather than merely 31 calls to Product methods.
 
-## 11. Пример фактического вывода
+## 11. Actual sample output
 
 ```text
 Basic flight: LOCAL, distance=1.0 km, site=Training field, Kazakhstan, battery=3000 mAh, altitude=50 m, speed=25 km/h, GPS=false, returnHome=false, camera=false
@@ -260,47 +260,48 @@ Safe flight: LOCAL, distance=3.0 km, site=Training field, Kazakhstan, battery=50
 Performance flight: LONG_RANGE, distance=20.0 km, site=Training field, Kazakhstan, battery=8000 mAh, altitude=100 m, speed=60 km/h, GPS=true, returnHome=true, camera=true
 ```
 
-По условию задания эмодзи добавлен к выводу ровно одной успешно созданной конфигурации — SAFE. Последняя строка запуска тестов:
+As required by the assignment, the emoji is added to the output of exactly one successfully built configuration: SAFE. The final line of the test run is:
 
 ```text
 All 31 tests passed.
 ```
 
-## 12. История разработки
+## 12. Development history
 
-Этапы сохранены последовательно, а не разложены задним числом из одного финального состояния:
+The stages were saved in sequence, rather than reconstructed retrospectively from one final state:
 
-| Коммит | Изменение |
+| Commit | Change |
 |---|---|
-| b5772d0 | Типы миссий и неизменяемый LaunchSite |
-| 40059d3 | Исходная реализация с конструктором на 10 параметров |
-| bb11d45 | Fluent Builder, дефолты и закрытый конструктор Product |
-| 9c3a8a4 | Полная валидация, выделение коротких функций |
-| ab7ba12 | Три пресета и Director |
-| 065fb1e | Тесты корректности, границ и независимости Product |
+| b5772d0 | Mission types and immutable LaunchSite |
+| 40059d3 | Initial implementation with a ten-parameter constructor |
+| bb11d45 | Fluent Builder, defaults, and private Product constructor |
+| 9c3a8a4 | Full validation and extraction of small functions |
+| ab7ba12 | Three presets and Director |
+| 065fb1e | Tests for valid construction, boundaries, and Product independence |
+| 752bec9 | Report, README, UML, and defense preparation |
 
-Отчёт, README и UML сохраняются следующим отдельным коммитом. Полная история доступна через `git log --oneline --reverse`.
+The English translation is saved in a subsequent commit. The complete history is available through `git log --oneline --reverse`.
 
-## 13. Подготовка к защите и изменению требований
+## 13. Defense preparation and changing requirements
 
-**Почему Builder?** У миссии много необязательных параметров и зависимостей. По именованным шагам проще понять настройки, чем по позиционным числам и флагам. Для объекта с двумя простыми полями обычного конструктора было бы достаточно.
+**Why Builder?** A mission has many optional parameters and dependencies. Named steps make the settings easier to understand than positional numbers and flags. A conventional constructor would be sufficient for an object with two simple fields.
 
-**Чем Builder отличается от Product?** Builder — изменяемая заготовка. Product — готовая проверенная миссия. `build()` связывает эти две стадии.
+**How does Builder differ from Product?** Builder is a mutable draft. Product is a completed, validated mission. `build()` connects these two stages.
 
-**Что делает return this?** Возвращает тот же Builder для следующего вызова в цепочке. Новый Product появляется только в `build()`.
+**What does return this do?** It returns the same Builder for the next call in the chain. A new Product is created only inside `build()`.
 
-**Почему final недостаточно для любой вложенной структуры?** `final` запрещает заменить ссылку, но не запрещает изменять объект по этой ссылке. Здесь LaunchSite сам неизменяем. Для списка понадобилась бы неизменяемая копия.
+**Why is final insufficient for every nested structure?** `final` prevents replacing a reference, but does not prevent modifying the referenced object. Here, LaunchSite itself is immutable. A list would require an immutable copy.
 
-**Что будет при .enableReturnHome().build() без GPS?** Исключение `IllegalArgumentException`, объект не создастся. Если добавить `.enableGps()` перед `build()`, такая зависимость станет корректной.
+**What happens with .enableReturnHome().build() without GPS?** An `IllegalArgumentException` is thrown, and no object is created. Adding `.enableGps()` before `build()` satisfies this dependency.
 
-**Как добавить необязательное поле?** Например, для `flightMinutes`: добавить поле Product и getter, поле Builder с дефолтом, именованный метод Builder, копирование в закрытом конструкторе. Затем добавить диапазон и тесты, обновить UML. Старые вызовы продолжат работать благодаря дефолту.
+**How can an optional property be added?** For example, to add `flightMinutes`, add a Product field and getter, a Builder field with a default, a named Builder method, and copying in the private constructor. Then add range validation and tests, and update the UML. Existing calls continue to work because of the default.
 
-**Как добавить условно обязательную настройку?** Если камера должна требовать батарею от 4000, добавить в `validateDependencies()` условие `cameraEnabled && batteryMah < 4000` и исключение. Написать тест отказа при 3999 и успешного создания при 4000 с камерой. Проверить существующие пресеты: у PERFORMANCE батарея 8000.
+**How can a conditionally required setting be added?** If using a camera must require at least 4000 mAh, add the condition `cameraEnabled && batteryMah < 4000` and an exception to `validateDependencies()`. Write a failing test at 3999 and a successful test at 4000 with the camera enabled. Check existing presets: PERFORMANCE has an 8000 mAh battery.
 
-**Как добавить новый preset?** Добавить именованный статический метод в MissionPresets, собрать конфигурацию через Builder, при необходимости использовать withNavigation. Затем добавить тест фактических свойств и обновить таблицу и UML.
+**How can a new preset be added?** Add a named static method to MissionPresets, create the configuration using Builder, and use withNavigation if needed. Then add a test of the actual properties and update the table and UML.
 
-**Как поменять дефолт?** Изменить начальное значение поля Builder. Явные вызовы, например `.withBattery(5000)`, останутся приоритетными. Тест BASIC придётся обновить, потому что он специально проверяет дефолты; SAFE и PERFORMANCE имеют явные значения батареи.
+**How can a default be changed?** Change the initial value of the Builder field. Explicit calls such as `.withBattery(5000)` still take priority. The BASIC test must be updated because it deliberately checks defaults; SAFE and PERFORMANCE use explicit battery values.
 
-**Как запретить повторное использование?** Добавить флаг `built` в Builder, проверять его в `build()` и выставлять после успешных проверок. Тогда второй `build()` должен завершаться ошибкой; тест независимости потребуется заменить или дополнить тестом этого поведения. Текущая версия намеренно допускает повторное использование.
+**How can Builder reuse be prohibited?** Add a `built` flag to Builder, check it in `build()`, and set it after successful validation. A second `build()` should then fail; the independence test must be replaced or supplemented with a test for this behavior. The current version intentionally allows reuse.
 
-Перед защитой нужно уметь самостоятельно пройти путь Main → MissionPresets → Builder → проверки → Product, объяснить каждый if и изменить хотя бы одно правило вместе с тестом. Код и отчёт подготовлены с помощью AI; ответственность за понимание и соответствие правилам курса остаётся у сдающего работу.
+Before the defense, be able to trace Main → MissionPresets → Builder → validation → Product independently, explain every if statement, and modify at least one rule together with its test. The code and report were prepared with AI assistance; responsibility for understanding the work and following course rules remains with the student submitting it.

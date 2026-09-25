@@ -1,4 +1,4 @@
-// Director хранит готовые рецепты и возвращает готовые миссии.
+// Director stores preset recipes and returns completed missions.
 public final class MissionPresets {
     private MissionPresets() { }
 
@@ -24,7 +24,7 @@ public final class MissionPresets {
                 .build();
     }
 
-    // Общие шаги SAFE и PERFORMANCE написаны один раз.
+    // Shared SAFE and PERFORMANCE steps are defined once.
     private static DroneMission.Builder withNavigation(String name, MissionType type,
                                                        double distanceKm, LaunchSite site) {
         return new DroneMission.Builder(name, type, distanceKm, site)
