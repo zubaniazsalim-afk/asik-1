@@ -4,13 +4,15 @@ public class Main {
 
     public static void main(String[] args) {
         RoutePlanner<Farm> planner = new FarmPlanner();
-        Sensor<Farm> sensor = new FarmSensor();
+        SensorCreator<Farm> creator = new FarmCreator();
         ReportWriter<Farm> writer = new FarmReportWriter();
         InspectionData.Plan<Farm> plan = planner.plan(10);
-        double value = sensor.convert(180);
-        InspectionData.Observation<Farm> observation = new InspectionData.Observation<>(
-                plan, value, sensor.unit(), sensor.requiresAction(value));
+        InspectionData.Observation<Farm> observation = creator.inspect(plan, 160, 180, 200);
         System.out.println(writer.write(observation));
+    }
+
+    static class FarmCreator extends SensorCreator<Farm> {
+        public Sensor<Farm> createSensor() { return new FarmSensor(); }
     }
 
     static class FarmPlanner implements RoutePlanner<Farm> {
