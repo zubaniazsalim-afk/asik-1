@@ -1,10 +1,16 @@
 import java.util.Locale;
 
 // Nested classes keep one complete family together in a single file.
-public final class ForestFactory extends SensorCreator<ForestFactory.Family> {
+public final class ForestFactory extends InspectionFactory<ForestFactory.Family> {
     public static final class Family implements InspectionFamily {
         private Family() { }
     }
+
+    @Override
+    public RoutePlanner<Family> createPlanner() { return new ForestPlanner(); }
+
+    @Override
+    public ReportWriter<Family> createReportWriter() { return new ForestReportWriter(); }
 
     @Override
     public Sensor<Family> createSensor() { return new ForestSensor(); }

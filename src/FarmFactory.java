@@ -1,10 +1,16 @@
 import java.util.Locale;
 
 // Nested classes keep one complete family together in a single file.
-public final class FarmFactory extends SensorCreator<FarmFactory.Family> {
+public final class FarmFactory extends InspectionFactory<FarmFactory.Family> {
     public static final class Family implements InspectionFamily {
         private Family() { }
     }
+
+    @Override
+    public RoutePlanner<Family> createPlanner() { return new FarmPlanner(); }
+
+    @Override
+    public ReportWriter<Family> createReportWriter() { return new FarmReportWriter(); }
 
     @Override
     public Sensor<Family> createSensor() { return new FarmSensor(); }
