@@ -25,7 +25,7 @@ public final class InspectionService<F extends InspectionFamily> {
         if (!observation.alert()) {
             return "FOLLOW-UP | Not needed | " + report;
         }
-        // Revisit the most affected quarter of the surveyed area.
+        // Planning policy: reserve a revisit covering one quarter of the area.
         InspectionData.Plan<F> followUp = planner.plan(hectares / 4);
         return "FOLLOW-UP | Revisit " + followUp.hectares() + " ha for "
                 + followUp.minutes() + " min | " + report;
