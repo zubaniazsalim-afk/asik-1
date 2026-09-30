@@ -22,6 +22,7 @@ public class InspectionTest {
         testInvalidInputs();
         testAbstractionBasedClient();
         testCompileTimeCompatibility();
+        testMountainExtension();
         System.out.println("All " + passed + " tests passed.");
     }
 
@@ -200,6 +201,27 @@ public class InspectionTest {
         public ReportWriter<TestFamily> createReportWriter() {
             return observation -> "TEST route=" + observation.plan().route() + " value=" + observation.value();
         }
+    }
+
+    private static void testMountainExtension() throws Exception {
+        MountainFactory factory = new MountainFactory();
+        check(factory.createPlanner() instanceof MountainFactory.MountainPlanner, "mountain planner creation");
+        check(factory.createSensor() instanceof MountainFactory.MountainSensor, "mountain sensor creation");
+        check(factory.createReportWriter() instanceof MountainFactory.MountainReportWriter, "mountain writer creation");
+        check(FactorySelector.select("mountain") instanceof MountainFactory, "select fourth family");
+        var plan = factory.createPlanner().plan(10);
+        check(plan.minutes() == 60 && factory.inspect(plan, 500).alert()
+                && !factory.inspect(plan, 499).alert(), "mountain route and snow threshold");
+        var service = new InspectionService<>(factory);
+        check(service.survey(10, 600).contains("60.00 cm snow | Close trail for snow clearance"),
+                "fourth family survey with unchanged client");
+        check(service.scheduleFollowUp(10, 600).startsWith("FOLLOW-UP | Revisit 2.5 ha for 15 min"),
+                "fourth family follow-up");
+        check(service.compareSurveys(10, 600, 200).startsWith("COMPARISON | RESOLVED"),
+                "fourth family comparison");
+        check(!canCompile("new MountainFactory().createReportWriter().write("
+                + "new FarmFactory().inspect(new FarmFactory().createPlanner().plan(10), 180));"),
+                "fourth family rejects original-family data");
     }
 
     private static void expectInvalid(Runnable action, String message, String testName) {

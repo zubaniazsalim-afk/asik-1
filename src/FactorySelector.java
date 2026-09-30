@@ -12,6 +12,7 @@ public final class FactorySelector {
             case "farm" -> new FarmFactory();
             case "forest" -> new ForestFactory();
             case "coast" -> new CoastFactory();
+            case "mountain" -> new MountainFactory();
             default -> throw new IllegalArgumentException("Unknown family: " + family);
         };
     }
